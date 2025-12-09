@@ -2,8 +2,9 @@
 langchain==0.1.0
 langchain-community==0.0.10
 
-# Embeddings (FREE - HuggingFace)
-sentence-transformers==2.2.2
+# Embeddings (FREE - HuggingFace) - Updated for compatibility
+sentence-transformers>=2.3.0
+chardet  # For encoding detection
 
 # Vector Database (FREE - Local)
 chromadb==0.4.22
