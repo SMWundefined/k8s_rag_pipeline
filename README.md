@@ -25,7 +25,11 @@ cd k8s-rag-workshop
 
 # 2. Install Ollama (if not already installed)
 # Visit https://ollama.ai or run:
+## Linux
 curl -fsSL https://ollama.com/install.sh | sh
+## Mac
+brew install ollama
+
 
 # 3. Run setup script
 chmod +x setup.sh
@@ -87,7 +91,7 @@ k8s-rag-workshop/
 | Vector DB | ChromaDB (local) | $0 |
 | Framework | LangChain | $0 |
 
-**Total cost: $0** 
+**Total cost: $0**
 
 ## Usage
 
@@ -193,4 +197,3 @@ Found a bug? Have an improvement? PRs welcome!
 ## License
 
 MIT License - use freely for learning and teaching!
-

@@ -1,9 +1,7 @@
 #!/bin/bash
 
 echo "GenAI 101: RAG Workshop Setup"
-echo "================================"
 echo ""
-
 # Check if Ollama is installed
 if ! command -v ollama &> /dev/null; then
     echo " Ollama not found!"
@@ -26,7 +24,7 @@ echo ""
 echo "Setting up Python environment..."
 
 # Create virtual environment
-python -m venv venv
+python3 -m venv venv
 
 # Activate virtual environment
 source venv/bin/activate
@@ -39,7 +37,7 @@ echo "Installing Python packages..."
 pip install -r requirements.txt
 
 echo ""
-echo "="*50
+echo "================"
 echo "Setup complete!"
-echo "="*50
+echo "================"
 echo ""
