@@ -1,9 +1,6 @@
 # GenAI 101: Build an AI Search for K8s Docs
 
 **40-minute hands-on workshop** teaching you to build a RAG (Retrieval Augmented Generation) system for searching Kubernetes documentation using natural language.
-
-🆓 **100% Free** • 💻 **Runs Locally** • 🔒 **No API Keys Needed**
-
 ## What You'll Build
 
 Ask questions like:
@@ -59,16 +56,6 @@ k8s-rag-workshop/
 ```
 
 ## How It Works
-
-### The Concept: RAG
-
-Think of embeddings like GPS coordinates for concepts:
-- `"deployment"` → `(0.2, 0.8, 0.3, ...)`
-- `"replicaset"` → `(0.22, 0.82, 0.31, ...)`
-- `"coffee"` → `(0.9, 0.1, 0.05, ...)`
-
-Similar concepts = nearby coordinates!
-
 ### The Process
 
 1. **Load** K8s configs and docs
@@ -100,29 +87,7 @@ Similar concepts = nearby coordinates!
 | Vector DB | ChromaDB (local) | $0 |
 | Framework | LangChain | $0 |
 
-**Total cost: $0** ✨
-
-### Optional Upgrades (Paid)
-
-Want faster/better results? You can upgrade:
-
-**OpenAI** (Faster, more accurate)
-```python
-# In demo.py, replace:
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-
-embeddings = OpenAIEmbeddings()
-llm = ChatOpenAI(model="gpt-4o-mini")
-```
-Cost: ~$0.01 per 1000 queries
-
-**Anthropic Claude** (Best for long documents)
-```python
-from langchain_anthropic import ChatAnthropic
-
-llm = ChatAnthropic(model="claude-3-5-sonnet-20241022")
-```
-Cost: ~$0.03 per 1000 queries
+**Total cost: $0** 
 
 ## Usage
 
@@ -213,14 +178,6 @@ Want faster? Upgrade to OpenAI (see Optional Upgrades above).
 - [ChromaDB](https://docs.trychroma.com/)
 - [Original RAG Paper](https://arxiv.org/abs/2005.11401)
 
-## Next Steps
-
-### Extend This Project
-
-1. **Add more docs**: Put your runbooks, postmortems, internal wikis in `sample-data/`
-2. **Add metadata filtering**: Search only YAML files, or specific dates
-3. **Build a web UI**: Use Streamlit or Gradio
-4. **Improve retrieval**: Try hybrid search (semantic + keyword)
 
 ### Production Considerations
 
@@ -237,12 +194,3 @@ Found a bug? Have an improvement? PRs welcome!
 
 MIT License - use freely for learning and teaching!
 
-## Questions?
-
-Open an issue or reach out at [your-contact]
-
----
-
-**Built with ❤️ for SRE engineers learning GenAI**
-
-*Remember: The best way to learn is by building!* 🚀
