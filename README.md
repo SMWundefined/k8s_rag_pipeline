@@ -21,7 +21,7 @@ Get back actual K8s YAML configs + explanations!
 ```bash
 # 1. Clone this repo
 git clone https://github.com/SMWundefined/k8s_rag_pipeline.git
-cd k8s-rag-workshop
+cd <k8s_rag_pipeline_folder>
 
 # 2. Install Ollama (if not already installed)
 # Visit https://ollama.ai or run:
