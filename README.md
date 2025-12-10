@@ -20,7 +20,7 @@ Get back actual K8s YAML configs + explanations!
 
 ```bash
 # 1. Clone this repo
-git clone https://github.com/[YOUR-USERNAME]/k8s-rag-workshop.git
+git clone https://github.com/SMWundefined/k8s_rag_pipeline.git
 cd k8s-rag-workshop
 
 # 2. Install Ollama (if not already installed)
@@ -116,55 +116,6 @@ Then ask questions:
 2. Run `python demo.py` again
 3. That's it! Your new docs are now searchable
 
-## Workshop Structure
-
-If you're attending the workshop:
-
-**Slides (8 min)**
-- Problem & Solution
-- How RAG works
-- Live demo
-
-**Live Coding (28 min)**
-- Walk through the code
-- Explain each concept
-- See it work
-
-**Interactive (4 min)**
-- Try your own queries
-- Experiment
-- Discuss results
-
-## Troubleshooting
-
-### "Ollama not found"
-```bash
-# Install Ollama
-curl -fsSL https://ollama.com/install.sh | sh
-
-# Pull the model
-ollama pull llama3.2
-```
-
-### "No files found in ./sample-data/"
-Make sure you're in the workshop directory:
-```bash
-ls sample-data/  # Should see YAML files
-```
-
-### Python errors
-```bash
-# Recreate environment
-rm -rf venv
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-### Slow responses
-This is normal for local LLMs! Expect 2-5 seconds per query.
-Want faster? Upgrade to OpenAI (see Optional Upgrades above).
-
 ## Learn More
 
 ### Concepts
@@ -189,10 +140,6 @@ Want faster? Upgrade to OpenAI (see Optional Upgrades above).
 - Add caching for common queries
 - Implement evaluation metrics
 - Add authentication if exposing as API
-
-## Contributing
-
-Found a bug? Have an improvement? PRs welcome!
 
 ## License
 
