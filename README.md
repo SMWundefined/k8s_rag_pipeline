@@ -45,18 +45,24 @@ That's it! Start asking questions about Kubernetes.
 ## What's Inside
 
 ```
-k8s-rag-workshop/
-├── demo.py              # Main demo (simple, ~60 lines)
-├── setup.sh             # One-command setup
-├── requirements.txt     # Python dependencies
-├── sample-data/         # Sample K8s configs (included!)
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   ├── statefulset.yaml
-│   ├── configmap.yaml
-│   ├── pvc.yaml
-│   └── k8s-basics.md
-└── README.md            # This file
+k8s_rag_pipeline/
+├── demo.py                      # Full demo with git clone & error handling
+├── demo_simple.py               # Simplified demo (~70 lines) for walkthrough
+├── setup.sh                     # One-command setup
+├── requirements.txt            
+│
+├── k8s-data/examples/           # K8s configs (auto-downloaded)
+│   ├── AI/                      
+│   ├── databases/               
+│   ├── web/                    
+│   └── ...                      
+│
+├── chroma_db/                   # Vector database (auto-generated)
+│
+├── # Documentation & Guides
+├── README.md                    
+├── architecture.md             
+
 ```
 
 ## How It Works
