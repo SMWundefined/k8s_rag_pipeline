@@ -65,7 +65,7 @@ def main():
     # STEP 1: Load K8s Documentation
     print("Step 1: Loading K8s documentation...")
 
-    # Try loading YAML files
+    # Try loading YAML files (excluding archived content)
     try:
         loader = DirectoryLoader(
             './k8s-data/examples/',
@@ -75,7 +75,7 @@ def main():
             silent_errors=True,
             loader_kwargs={'autodetect_encoding': True}
         )
-        documents = loader.load()
+        documents = [doc for doc in loader.load() if '_archived' not in doc.metadata.get('source', '')]
 
         # Also try .yml files
         loader_yml = DirectoryLoader(
@@ -86,18 +86,19 @@ def main():
             silent_errors=True,
             loader_kwargs={'autodetect_encoding': True}
         )
-        documents.extend(loader_yml.load())
+        documents.extend([doc for doc in loader_yml.load() if '_archived' not in doc.metadata.get('source', '')])
 
-        # Also try .md files
-        loader_md = DirectoryLoader(
-            './k8s-data/examples/',
-            glob="**/*.md",
-            loader_cls=TextLoader,
-            show_progress=False,
-            silent_errors=True,
-            loader_kwargs={'autodetect_encoding': True}
-        )
-        documents.extend(loader_md.load())
+        # Load K8s documentation (kubectl cheatsheet, concepts, etc.)
+        if Path('./k8s-data/docs/').exists():
+            loader_docs = DirectoryLoader(
+                './k8s-data/docs/',
+                glob="**/*.md",
+                loader_cls=TextLoader,
+                show_progress=False,
+                silent_errors=True,
+                loader_kwargs={'autodetect_encoding': True}
+            )
+            documents.extend(loader_docs.load())
 
     except Exception as e:
         print(f"ERROR loading files: {e}")
@@ -108,7 +109,6 @@ def main():
     if not documents:
         print("ERROR: No files found in k8s-data/examples/")
         print("Debug info:")
-        from pathlib import Path
         p = Path("./k8s-data/examples/")
         yaml_count = len(list(p.rglob("*.yaml")))
         print(f"  YAML files found on disk: {yaml_count}")
@@ -156,14 +156,15 @@ def main():
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
     prompt_template = PromptTemplate.from_template(
-        """Use the following context to answer the question. If you don't know the answer, say so.
+        """You are a Kubernetes expert assistant. Answer ONLY based on the provided context.
+If the question is not related to Kubernetes or the context does not contain relevant information, respond with: "I don't have information about that in my knowledge base."
 
 Context:
 {context}
 
 Question: {question}
 
-Answer:"""
+Answer (only if relevant to Kubernetes):"""
     )
 
     def format_docs(docs):
@@ -198,9 +199,22 @@ Answer:"""
 
         try:
             print("\nSearching...")
+            docs = retriever.invoke(query)
             result = rag_chain.invoke(query)
             print(f"\nAnswer:\n{result}\n")
-            print("-" * 60 + "\n")
+
+            # Only show sources if we found relevant information
+            if "don't have information" not in result.lower():
+                print("Sources:")
+                for doc in docs:
+                    source_path = doc.metadata.get('source', 'unknown')
+                    if 'k8s-data/examples/' in source_path:
+                        relative_path = source_path.split('k8s-data/examples/')[-1]
+                        github_url = f"https://github.com/kubernetes/examples/blob/master/{relative_path}"
+                        print(f"  - {github_url}")
+                    else:
+                        print(f"  - {source_path}")
+            print("\n" + "-" * 60 + "\n")
 
         except Exception as e:
             print(f"\nERROR: {str(e)}\n")
