@@ -56,24 +56,13 @@ k8s_rag_pipeline/
 │   ├── databases/
 │   ├── web/
 │   └── ...
-│
-├── chroma_db/                   # Vector database (auto-generated)
-│
 ├── # Documentation & Guides
 ├── README.md
 ├── architecture.md
 
 =======
 ├── README.md                    # This file
-├── PPT_GUIDE.md                 # 24-slide presentation guide with speaker notes
-├── WHAT_CAN_I_DO_NEXT.md        # Expanded "next steps" content (9 slides)
-├── EMBEDDINGS_VISUAL.md         # Mermaid diagrams explaining embeddings
 ├── architecture.md              # RAG pipeline architecture diagrams
-│
-├── # Generated Assets
-├── embeddings_visualization.png      # Light theme embedding chart
-└── embeddings_visualization_dark.png # Dark theme embedding chart
->>>>>>> Stashed changes
 ```
 
 ## How It Works
