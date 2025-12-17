@@ -1,228 +1,173 @@
 #!/usr/bin/env python3
 """
-GenAI 101: RAG for K8s Docs (Free Version)
+GenAI 101: Comprehensive RAG Demo
+Features: Multiple file types, chunking, smart prompts, source links, relevance filtering
 """
 
-import os
 import subprocess
-import sys
-import shutil
 from pathlib import Path
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
-from langchain_ollama import OllamaLLM
+from langchain_community.document_loaders import DirectoryLoader, TextLoader
+from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
-from langchain_core.output_parsers import StrOutputParser
-from langchain_community.document_loaders import DirectoryLoader, TextLoader
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_ollama import OllamaLLM
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-def clone_k8s_docs():
-    """Clone Kubernetes examples if not already present"""
-    data_dir = Path("./k8s-data")
-    examples_dir = data_dir / "examples"
 
-    if examples_dir.exists() and any(examples_dir.rglob("*.yaml")):
-        print("K8s examples already downloaded")
-        return True
+def download_data():
+    """Download K8s examples and documentation"""
+    examples_dir = Path("./k8s-data/examples")
+    docs_dir = Path("./k8s-data/docs")
 
-    print("Downloading Kubernetes examples (one-time setup)...")
-    print("This will take 1-2 minutes...")
+    # Download examples
+    if not examples_dir.exists():
+        print("Downloading K8s examples...")
+        Path("./k8s-data").mkdir(exist_ok=True)
+        subprocess.run(["git", "clone", "--depth", "1",
+            "https://github.com/kubernetes/examples.git", str(examples_dir)],
+            capture_output=True)
 
-    data_dir.mkdir(exist_ok=True)
+    # Download official K8s docs
+    if not docs_dir.exists():
+        print("Downloading K8s documentation...")
+        docs_dir.mkdir(exist_ok=True)
+        docs = [
+            ("kubectl-cheatsheet.md", "https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/reference/kubectl/cheatsheet.md"),
+            ("pods.md", "https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/concepts/workloads/pods/_index.md"),
+            ("deployments.md", "https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/concepts/workloads/controllers/deployment.md"),
+            ("services.md", "https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/concepts/services-networking/service.md"),
+            ("debugging-pods.md", "https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/tasks/debug/debug-application/debug-running-pod.md"),
+        ]
+        for filename, url in docs:
+            subprocess.run(["curl", "-s", "-o", str(docs_dir / filename), url], capture_output=True)
 
-    # Remove any failed partial download
-    if examples_dir.exists():
-        shutil.rmtree(examples_dir)
+    print("Data ready!\n")
 
-    try:
-        # Simple shallow clone - most reliable
-        subprocess.run([
-            "git", "clone",
-            "--depth", "1",
-            "https://github.com/kubernetes/examples.git",
-            str(examples_dir)
-        ], check=True, capture_output=True)
 
-        print("Download complete\n")
-        return True
+def load_documents():
+    """Load YAML examples and Markdown documentation"""
+    documents = []
 
-    except subprocess.CalledProcessError as e:
-        print(f"Error downloading K8s examples: {e}")
-        print("Falling back to minimal documentation...")
-        return False
+    # Load YAML files (excluding archived)
+    yaml_loader = DirectoryLoader("./k8s-data/examples/", glob="**/*.yaml",
+        loader_cls=TextLoader, silent_errors=True,
+        loader_kwargs={"autodetect_encoding": True})
+    yaml_docs = [d for d in yaml_loader.load() if "_archived" not in d.metadata.get("source", "")]
+    documents.extend(yaml_docs)
+
+    # Load documentation
+    if Path("./k8s-data/docs/").exists():
+        md_loader = DirectoryLoader("./k8s-data/docs/", glob="**/*.md",
+            loader_cls=TextLoader, silent_errors=True,
+            loader_kwargs={"autodetect_encoding": True})
+        documents.extend(md_loader.load())
+
+    return documents
+
+
+def chunk_documents(documents):
+    """Split large documents into smaller chunks for better retrieval"""
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200,
+        separators=["\n\n", "\n", " ", ""]
+    )
+    return splitter.split_documents(documents)
+
+
+def format_source(source_path):
+    """Convert local path to GitHub URL"""
+    if "k8s-data/examples/" in source_path:
+        path = source_path.split("k8s-data/examples/")[-1]
+        return f"https://github.com/kubernetes/examples/blob/master/{path}"
+    elif "k8s-data/docs/" in source_path:
+        return f"K8s Docs: {Path(source_path).name}"
+    return source_path
+
 
 def main():
-    print("\n" + "="*60)
-    print("GenAI 101: RAG for K8s Docs (Free Version)")
-    print("="*60 + "\n")
+    print("\n" + "=" * 50)
+    print("  Comprehensive RAG Demo - K8s Knowledge Base")
+    print("=" * 50 + "\n")
 
-    # STEP 0: Download K8s Documentation
-    if not clone_k8s_docs():
-        print("ERROR: Could not download K8s documentation")
-        print("Please check your internet connection and git installation")
-        return
+    # Step 1: Get data
+    download_data()
 
-    # STEP 1: Load K8s Documentation
-    print("Step 1: Loading K8s documentation...")
+    # Step 2: Load and chunk documents
+    print("Loading documents...")
+    documents = load_documents()
+    print(f"  Found {len(documents)} documents")
 
-    # Try loading YAML files (excluding archived content)
-    try:
-        loader = DirectoryLoader(
-            './k8s-data/examples/',
-            glob="**/*.yaml",
-            loader_cls=TextLoader,
-            show_progress=False,
-            silent_errors=True,
-            loader_kwargs={'autodetect_encoding': True}
-        )
-        documents = [doc for doc in loader.load() if '_archived' not in doc.metadata.get('source', '')]
+    print("Chunking for better retrieval...")
+    chunks = chunk_documents(documents)
+    print(f"  Created {len(chunks)} chunks\n")
 
-        # Also try .yml files
-        loader_yml = DirectoryLoader(
-            './k8s-data/examples/',
-            glob="**/*.yml",
-            loader_cls=TextLoader,
-            show_progress=False,
-            silent_errors=True,
-            loader_kwargs={'autodetect_encoding': True}
-        )
-        documents.extend([doc for doc in loader_yml.load() if '_archived' not in doc.metadata.get('source', '')])
+    # Step 3: Build vector store
+    print("Building search index...")
+    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    vectorstore = Chroma.from_documents(chunks, embeddings, persist_directory="./chroma_db")
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+    print("  Index ready!\n")
 
-        # Load K8s documentation (kubectl cheatsheet, concepts, etc.)
-        if Path('./k8s-data/docs/').exists():
-            loader_docs = DirectoryLoader(
-                './k8s-data/docs/',
-                glob="**/*.md",
-                loader_cls=TextLoader,
-                show_progress=False,
-                silent_errors=True,
-                loader_kwargs={'autodetect_encoding': True}
-            )
-            documents.extend(loader_docs.load())
+    # Step 4: Connect LLM
+    print("Connecting to Ollama (llama3.2)...")
+    llm = OllamaLLM(model="llama3.2")
+    print("  Connected!\n")
 
-    except Exception as e:
-        print(f"ERROR loading files: {e}")
-        documents = []
-
-    print(f"Loaded {len(documents)} K8s files\n")
-
-    if not documents:
-        print("ERROR: No files found in k8s-data/examples/")
-        print("Debug info:")
-        p = Path("./k8s-data/examples/")
-        yaml_count = len(list(p.rglob("*.yaml")))
-        print(f"  YAML files found on disk: {yaml_count}")
-        print("\nTry:")
-        print("  1. Check encoding: python debug.py")
-        print("  2. Or delete k8s-data/ and run again")
-        return
-
-    # STEP 2: Create Embeddings (FREE)
-    print("Step 2: Creating embeddings...")
-    print("Converting text to vectors that capture meaning")
-    print("Using HuggingFace - 100% free\n")
-
-    embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
-
-    # STEP 3: Store in Vector Database
-    print("Step 3: Building vector database...")
-    print("Creating searchable index of K8s documentation\n")
-
-    vectorstore = Chroma.from_documents(
-        documents=documents,
-        embedding=embeddings,
-        persist_directory="./chroma_db"
-    )
-
-    # STEP 4: Connect to Local LLM (FREE)
-    print("Step 4: Connecting to Ollama...")
-    print("Using local LLM - no API calls\n")
-
-    try:
-        llm = OllamaLLM(model="llama3.2")
-    except Exception as e:
-        print("ERROR: Could not connect to Ollama")
-        print("Make sure Ollama is running:")
-        print("  1. Install: https://ollama.ai")
-        print("  2. Run: ollama pull llama3.2")
-        print("  3. Ollama runs automatically after install")
-        return
-
-    # STEP 5: Create RAG System
-    print("Step 5: Creating RAG system...\n")
-
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
-
-    prompt_template = PromptTemplate.from_template(
-        """You are a Kubernetes expert assistant. Answer ONLY based on the provided context.
-If the question is not related to Kubernetes or the context does not contain relevant information, respond with: "I don't have information about that in my knowledge base."
+    # Step 5: Create smart RAG chain
+    prompt = PromptTemplate.from_template("""You are a Kubernetes expert. Answer based ONLY on the context below.
+If the question is unrelated to Kubernetes or the context doesn't help, say: "I don't have information about that."
 
 Context:
 {context}
 
 Question: {question}
 
-Answer (only if relevant to Kubernetes):"""
+Provide a helpful, detailed answer with examples when relevant:""")
+
+    chain = (
+        {"context": retriever | (lambda docs: "\n\n---\n\n".join(d.page_content for d in docs)),
+         "question": RunnablePassthrough()}
+        | prompt | llm | StrOutputParser()
     )
 
-    def format_docs(docs):
-        return "\n\n".join(doc.page_content for doc in docs)
+    # Step 6: Interactive Q&A with sources
+    print("=" * 50)
+    print("Ready! Ask anything about Kubernetes")
+    print("Try: 'How do I get logs from a pod?'")
+    print("     'What is a deployment?'")
+    print("     'Show me a service example'")
+    print("=" * 50 + "\n")
 
-    rag_chain = (
-        {"context": retriever | format_docs, "question": RunnablePassthrough()}
-        | prompt_template
-        | llm
-        | StrOutputParser()
-    )
-
-    print("="*60)
-    print("Ready! Ask questions about Kubernetes")
-    print("="*60)
-    print("\nTry asking:")
-    print("  - 'Show me a deployment example'")
-    print("  - 'How do I configure persistent storage?'")
-    print("  - 'What's a service?'")
-    print("\nType 'quit' to exit\n")
-
-    # STEP 6: Interactive Q&A
     while True:
-        query = input("Your question: ").strip()
-
-        if query.lower() in ['quit', 'exit', 'q']:
-            print("\nThanks for learning about RAG!")
+        query = input("You: ").strip()
+        if query.lower() in ["quit", "exit", "q"]:
+            print("Goodbye!")
             break
-
         if not query:
             continue
 
-        try:
-            print("\nSearching...")
+        print("\nSearching knowledge base...")
+
+        # Get answer
+        answer = chain.invoke(query)
+        print(f"\nAnswer:\n{answer}\n")
+
+        # Show sources (only if relevant answer)
+        if "don't have information" not in answer.lower():
             docs = retriever.invoke(query)
-            result = rag_chain.invoke(query)
-            print(f"\nAnswer:\n{result}\n")
+            print("Sources:")
+            seen = set()
+            for doc in docs:
+                src = format_source(doc.metadata.get("source", "unknown"))
+                if src not in seen:
+                    print(f"  • {src}")
+                    seen.add(src)
 
-            # Only show sources if we found relevant information
-            if "don't have information" not in result.lower():
-                print("Sources:")
-                for doc in docs:
-                    source_path = doc.metadata.get('source', 'unknown')
-                    if 'k8s-data/examples/' in source_path:
-                        relative_path = source_path.split('k8s-data/examples/')[-1]
-                        github_url = f"https://github.com/kubernetes/examples/blob/master/{relative_path}"
-                        print(f"  - {github_url}")
-                    else:
-                        print(f"  - {source_path}")
-            print("\n" + "-" * 60 + "\n")
+        print("\n" + "-" * 50 + "\n")
 
-        except Exception as e:
-            print(f"\nERROR: {str(e)}\n")
 
 if __name__ == "__main__":
-    # Check if running in correct directory
-    if not os.path.exists('./demo.py'):
-        print("ERROR: Please run from the workshop directory")
-        sys.exit(1)
-
     main()
