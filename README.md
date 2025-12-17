@@ -49,6 +49,7 @@ k8s_rag_pipeline/
 ├── demo.py                      # Full demo with git clone & error handling
 ├── demo_simple.py               # Simplified demo (~70 lines) for walkthrough
 ├── setup.sh                     # One-command setup
+<<<<<<< Updated upstream
 ├── requirements.txt            
 │
 ├── k8s-data/examples/           # K8s configs (auto-downloaded)
@@ -56,13 +57,35 @@ k8s_rag_pipeline/
 │   ├── databases/               
 │   ├── web/                    
 │   └── ...                      
+=======
+├── requirements.txt             # Python dependencies
+├── visualize_embeddings.py      # Generate embedding visualization PNGs
+│
+├── k8s-data/examples/           # K8s configs (auto-downloaded)
+│   ├── AI/                      # AI/ML examples
+│   ├── databases/               # Database examples (MySQL, Redis, etc.)
+│   ├── web/                     # Web server examples (nginx, etc.)
+│   └── ...                      # More K8s examples
+>>>>>>> Stashed changes
 │
 ├── chroma_db/                   # Vector database (auto-generated)
 │
 ├── # Documentation & Guides
+<<<<<<< Updated upstream
 ├── README.md                    
 ├── architecture.md             
 
+=======
+├── README.md                    # This file
+├── PPT_GUIDE.md                 # 24-slide presentation guide with speaker notes
+├── WHAT_CAN_I_DO_NEXT.md        # Expanded "next steps" content (9 slides)
+├── EMBEDDINGS_VISUAL.md         # Mermaid diagrams explaining embeddings
+├── architecture.md              # RAG pipeline architecture diagrams
+│
+├── # Generated Assets
+├── embeddings_visualization.png      # Light theme embedding chart
+└── embeddings_visualization_dark.png # Dark theme embedding chart
+>>>>>>> Stashed changes
 ```
 
 ## How It Works
