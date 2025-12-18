@@ -5,6 +5,7 @@ Comprehensive RAG Demo
 
 import subprocess
 from pathlib import Path
+
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_core.output_parsers import StrOutputParser
@@ -24,23 +25,48 @@ def download_data():
     if not examples_dir.exists():
         print("Downloading K8s examples...")
         Path("./k8s-data").mkdir(exist_ok=True)
-        subprocess.run(["git", "clone", "--depth", "1",
-            "https://github.com/kubernetes/examples.git", str(examples_dir)],
-            capture_output=True)
+        subprocess.run(
+            [
+                "git",
+                "clone",
+                "--depth",
+                "1",
+                "https://github.com/kubernetes/examples.git",
+                str(examples_dir),
+            ],
+            capture_output=True,
+        )
 
     # Download official K8s docs
     if not docs_dir.exists():
         print("Downloading K8s documentation...")
         docs_dir.mkdir(exist_ok=True)
         docs = [
-            ("kubectl-cheatsheet.md", "https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/reference/kubectl/cheatsheet.md"),
-            ("pods.md", "https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/concepts/workloads/pods/_index.md"),
-            ("deployments.md", "https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/concepts/workloads/controllers/deployment.md"),
-            ("services.md", "https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/concepts/services-networking/service.md"),
-            ("debugging-pods.md", "https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/tasks/debug/debug-application/debug-running-pod.md"),
+            (
+                "kubectl-cheatsheet.md",
+                "https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/reference/kubectl/cheatsheet.md",
+            ),
+            (
+                "pods.md",
+                "https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/concepts/workloads/pods/_index.md",
+            ),
+            (
+                "deployments.md",
+                "https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/concepts/workloads/controllers/deployment.md",
+            ),
+            (
+                "services.md",
+                "https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/concepts/services-networking/service.md",
+            ),
+            (
+                "debugging-pods.md",
+                "https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/tasks/debug/debug-application/debug-running-pod.md",
+            ),
         ]
         for filename, url in docs:
-            subprocess.run(["curl", "-s", "-o", str(docs_dir / filename), url], capture_output=True)
+            subprocess.run(
+                ["curl", "-s", "-o", str(docs_dir / filename), url], capture_output=True
+            )
 
     print("Data ready!\n")
 
@@ -50,18 +76,33 @@ def load_documents():
     documents = []
 
     # Load YAML files (excluding archived)
-    yaml_loader = DirectoryLoader("./k8s-data/examples/", glob="**/*.yaml",
-        loader_cls=TextLoader, silent_errors=True,
-        loader_kwargs={"autodetect_encoding": True})
-    yaml_docs = [d for d in yaml_loader.load() if "_archived" not in d.metadata.get("source", "")]
+    yaml_loader = DirectoryLoader(
+        "./k8s-data/examples/",
+        glob="**/*.yaml",
+        loader_cls=TextLoader,
+        silent_errors=True,
+        loader_kwargs={"autodetect_encoding": True},
+    )
+    yaml_docs = [
+        d for d in yaml_loader.load() if "_archived" not in d.metadata.get("source", "")
+    ]
     documents.extend(yaml_docs)
 
     # Load documentation
     if Path("./k8s-data/docs/").exists():
-        md_loader = DirectoryLoader("./k8s-data/docs/", glob="**/*.md",
-            loader_cls=TextLoader, silent_errors=True,
-            loader_kwargs={"autodetect_encoding": True})
-        documents.extend(md_loader.load())
+        md_loader = DirectoryLoader(
+            "./k8s-data/docs/",
+            glob="**/*.md",
+            loader_cls=TextLoader,
+            silent_errors=True,
+            loader_kwargs={"autodetect_encoding": True},
+        )
+        md_docs = [
+            d
+            for d in md_loader.load()
+            if "_archived" not in d.metadata.get("source", "")
+        ]
+        documents.extend(md_docs)
 
     return documents
 
@@ -69,9 +110,7 @@ def load_documents():
 def chunk_documents(documents):
     """Split large documents into smaller chunks for better retrieval"""
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200,
-        separators=["\n\n", "\n", " ", ""]
+        chunk_size=1000, chunk_overlap=200, separators=["\n\n", "\n", " ", ""]
     )
     return splitter.split_documents(documents)
 
@@ -105,8 +144,12 @@ def main():
 
     # Step 3: Build vector store
     print("Building search index...")
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    vectorstore = Chroma.from_documents(chunks, embeddings, persist_directory="./chroma_db")
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    )
+    vectorstore = Chroma.from_documents(
+        chunks, embeddings, persist_directory="./chroma_db"
+    )
     retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
     print("  Index ready!\n")
 
@@ -116,7 +159,8 @@ def main():
     print("  Connected!\n")
 
     # Step 5: Create smart RAG chain
-    prompt = PromptTemplate.from_template("""You are a Kubernetes expert. Answer based ONLY on the context below.
+    prompt = PromptTemplate.from_template(
+        """You are a Kubernetes expert. Answer based ONLY on the context below.
 If the question is unrelated to Kubernetes or the context doesn't help, say: "I don't have information about that."
 
 Context:
@@ -124,12 +168,18 @@ Context:
 
 Question: {question}
 
-Provide a helpful, detailed answer with examples when relevant:""")
+Provide a helpful, detailed answer with examples when relevant:"""
+    )
 
     chain = (
-        {"context": retriever | (lambda docs: "\n\n---\n\n".join(d.page_content for d in docs)),
-         "question": RunnablePassthrough()}
-        | prompt | llm | StrOutputParser()
+        {
+            "context": retriever
+            | (lambda docs: "\n\n---\n\n".join(d.page_content for d in docs)),
+            "question": RunnablePassthrough(),
+        }
+        | prompt
+        | llm
+        | StrOutputParser()
     )
 
     # Step 6: Interactive Q&A with sources
