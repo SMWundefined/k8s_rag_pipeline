@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-GenAI 101: Comprehensive RAG Demo
-Features: Multiple file types, chunking, smart prompts, source links, relevance filtering
+Comprehensive RAG Demo
 """
 
 import subprocess

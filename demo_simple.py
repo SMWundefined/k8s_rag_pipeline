@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-GenAI 101: Simple RAG Demo
-~50 lines of core logic - perfect for walkthrough
+Simple RAG Model for Kubernetes context
 """
 
 import subprocess
