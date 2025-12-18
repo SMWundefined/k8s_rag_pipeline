@@ -8,6 +8,7 @@ langchain-text-splitters>=0.0.1
 
 # Embeddings
 sentence-transformers>=2.3.0
+pypdf>=3.0.0
 chardet  # For encoding detection
 
 # Vector Database (FREE - Local)
